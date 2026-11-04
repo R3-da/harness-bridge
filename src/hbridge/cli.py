@@ -21,6 +21,7 @@ examples:
   hbridge run kilo openrouter       one OpenRouter session, config untouched
   hbridge run codex go -- exec "fix the tests"
   hbridge install-shims             ccuse, cxuse, claude-go, codex-or, ...
+  hbridge ui                        drag harnesses onto providers in a browser
 """
 
 STARTER_CATALOG = """\
@@ -208,6 +209,13 @@ def cmd_install_shims(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ui(args: argparse.Namespace) -> int:
+    from hbridge import ui
+
+    ui.serve(args.port, expand(args.catalog) if args.catalog else None, not args.no_open)
+    return 0
+
+
 def cmd_uninstall_shims(args: argparse.Namespace) -> int:
     removed = shims.uninstall(expand(args.dir))
     print(f"removed {len(removed)} hbridge commands from {expand(args.dir)}")
@@ -266,6 +274,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true", help="replace files hbridge did not write")
     p.add_argument("--command", help="how shims invoke hbridge (default: this hbridge's path)")
     p.set_defaults(func=cmd_install_shims)
+
+    p = sub.add_parser("ui", help="open the routing page in your browser")
+    p.add_argument("--port", type=int, default=0, help="port on 127.0.0.1 (default: any free port)")
+    p.add_argument("--no-open", action="store_true", help="print the URL instead of opening a browser")
+    p.set_defaults(func=cmd_ui)
 
     p = sub.add_parser("uninstall-shims", help="remove commands created by install-shims")
     p.add_argument("--dir", default="~/.local/bin")

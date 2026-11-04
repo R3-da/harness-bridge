@@ -61,6 +61,7 @@ hbridge run <tool> [provider] [-- args]
 hbridge providers [tool...]       what each harness can use
 hbridge key <credential>          print a key (used by config-file helpers)
 hbridge doctor                    check binaries, configs and credentials
+hbridge ui [--port N] [--no-open]  the routing page in a browser
 hbridge catalog [--path]          the merged catalog as JSON
 hbridge init                      write a starter ~/.config/hbridge/catalog.toml
 hbridge install-shims [--dir D] [--wrap] [tool...]
@@ -86,6 +87,29 @@ That matters for Claude Code on OpenCode Go when you don't rely on
 `apiKeyHelper`. When hbridge looks up the real binary, it skips its own
 shims, so shadowing `claude` on `PATH` is safe. `uninstall-shims` only
 removes files that hbridge wrote.
+
+## Routing UI (optional)
+
+```sh
+hbridge ui            # opens the routing page in your browser
+```
+
+Your harnesses are listed on the left and providers on the right, with a
+line for each current route. Drag a harness onto a provider, or click one
+and then the other, to switch it. Each link is the same permanent switch as
+`hbridge use`: it rewrites that harness's own config. Harnesses that aren't
+installed are grayed out. While you drag, providers the harness can't use
+are dimmed. A provider with no key available shows a warning. Selecting a
+harness lists the matching `ccuse` / `codex-go` style commands. The page
+refreshes every few seconds, so switches made from the terminal show up too.
+Keyboard: Tab to a harness, Enter, Tab to a provider, Enter; Esc cancels.
+
+The page is served by Python's standard library on `127.0.0.1` only. It
+needs no extra installs. Every request must carry the random token in the
+URL that `hbridge ui` prints, and requests whose `Host` is not the loopback
+address are refused. Keys never reach the page; it only learns whether one
+was found and from which source. Use `--no-open` to print the URL without
+opening a browser, and `--port` to pick a fixed port.
 
 ## The catalog
 

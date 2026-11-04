@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>harness-bridge</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M5 9c11 0 11 14 22 14%27 fill=%27none%27 stroke=%27%232563eb%27 stroke-width=%274%27 stroke-linecap=%27round%27/%3E%3Ccircle cx=%275%27 cy=%279%27 r=%274%27 fill=%27%23c96442%27/%3E%3Ccircle cx=%2727%27 cy=%2723%27 r=%274%27 fill=%27%237c3aed%27/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --surface-2: #f0eee9;
+  --text: #1c1b19;
+  --muted: #6b6862;
+  --border: #e2dfd8;
+  --focus: #2563eb;
+  --warn: #b45309;
+  --warn-bg: #fef3c7;
+  --ok: #15803d;
+  --shadow: 0 1px 2px rgba(28, 27, 25, .06), 0 4px 16px rgba(28, 27, 25, .05);
+  --c-anthropic: #c96442;
+  --c-openai: #0e9f6e;
+  --c-go: #2563eb;
+  --c-openrouter: #7c3aed;
+  --c-other: #6b6862;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141413;
+    --surface: #1e1d1b;
+    --surface-2: #262522;
+    --text: #edebe6;
+    --muted: #9c988f;
+    --border: #34322e;
+    --focus: #60a5fa;
+    --warn: #fbbf24;
+    --warn-bg: #3a2d0c;
+    --ok: #4ade80;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
+    --c-anthropic: #e08a68;
+    --c-openai: #34d399;
+    --c-go: #60a5fa;
+    --c-openrouter: #a78bfa;
+    --c-other: #9c988f;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .86em; }
+header {
+  max-width: 1040px; margin: 0 auto; padding: 28px 24px 8px;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+h1 span { color: var(--muted); font-weight: 500; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 640px; }
+.live { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); display: inline-block; }
+.live.stale i { background: var(--warn); }
+
+main { max-width: 1040px; margin: 0 auto; padding: 16px 24px 48px; }
+.board {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(48px, 200px) minmax(0, 1fr);
+  align-items: start;
+}
+.col { display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 1; }
+.col-tools { grid-column: 1; }
+.col-providers { grid-column: 3; justify-content: center; }
+.col h2 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted); margin: 0 0 2px; font-weight: 600;
+}
+svg.links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
+svg.links path { fill: none; stroke-width: 2.5; stroke-linecap: round; transition: opacity .15s, stroke-width .15s; }
+svg.links path.dim { opacity: .18; }
+svg.links path.hot { stroke-width: 4; }
+svg.links path.pending { stroke-dasharray: 6 6; animation: dash .6s linear infinite; }
+svg.links path.drag { stroke-dasharray: 2 7; stroke-width: 3; }
+@keyframes dash { to { stroke-dashoffset: -12; } }
+@media (prefers-reduced-motion: reduce) { svg.links path.pending { animation: none; } }
+
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  transition: border-color .15s, opacity .15s, transform .15s;
+  user-select: none;
+}
+button.card { cursor: grab; }
+button.card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.card .title { font-weight: 600; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card .title .mono { color: var(--muted); font-weight: 400; }
+.provider .title { flex-wrap: nowrap; align-items: center; }
+.card .meta { color: var(--muted); font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; }
+.card .route { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.chip {
+  display: inline-block; font-size: 11.5px; padding: 1px 7px; border-radius: 999px;
+  background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
+}
+.chip.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.chip.ok { color: var(--ok); }
+.port {
+  position: absolute; top: 50%; width: 14px; height: 14px; margin-top: -7px;
+  border-radius: 50%; background: var(--surface); border: 2.5px solid var(--c-other);
+}
+.tool .port { right: -8px; }
+.provider .port { left: -8px; }
+.tool.missing { opacity: .45; box-shadow: none; cursor: not-allowed; background: var(--surface-2); }
+.tool.missing .port { display: none; }
+.tool.selected { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 25%, transparent); }
+.tool.dragging { cursor: grabbing; }
+.provider.valid { border-color: var(--focus); }
+.provider.invalid { opacity: .35; }
+.provider.over { transform: translateX(-4px); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 30%, transparent); }
+.provider .linked { margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap; }
+.provider .key { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+.provider .key.bad { color: var(--warn); }
+
+.detail {
+  margin-top: 28px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow);
+}
+.detail h3 { margin: 0 0 4px; font-size: 15px; }
+.detail p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; }
+.table-wrap { overflow-x: auto; }
+.detail table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 520px; }
+.detail code { white-space: nowrap; }
+.detail th, .detail td { text-align: left; padding: 6px 10px 6px 0; border-top: 1px solid var(--border); vertical-align: top; }
+.detail th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; border-top: none; }
+.detail td.model { color: var(--muted); overflow-wrap: anywhere; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 14px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px;
+  font-size: 14px; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none;
+  max-width: calc(100vw - 32px); box-shadow: var(--shadow);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.error { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+.banner { padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); margin-bottom: 16px; }
+
+@media (max-width: 720px) {
+  header, main { padding-left: 16px; padding-right: 16px; }
+  .board { grid-template-columns: minmax(0, 1fr) 36px minmax(0, 1fr); }
+  .card { padding: 10px 11px; }
+  .card .meta { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>harness-bridge <span>routing</span></h1>
+    <p class="lede">Drag a harness onto a provider, or click one then the other. A link is a permanent switch: it rewrites that harness's own config, exactly like <code>cxuse go</code>.</p>
+  </div>
+  <div class="live" id="live"><i></i><span>live</span></div>
+</header>
+<main>
+  <div id="banner"></div>
+  <div class="board" id="board">
+    <svg class="links" id="links" aria-hidden="true"></svg>
+    <section class="col col-tools" aria-label="Harnesses"><h2>Harnesses</h2><div class="col" id="tools"></div></section>
+    <section class="col col-providers" aria-label="Providers"><h2>Providers</h2><div class="col" id="providers"></div></section>
+  </div>
+  <div id="detail"></div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+"use strict";
+const TOKEN = "__HBRIDGE_TOKEN__";
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, ...children) => {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === "class") node.className = value;
+    else if (key === "dataset") Object.assign(node.dataset, value);
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else if (value !== false && value != null) node.setAttribute(key, value === true ? "" : value);
+  }
+  for (const child of children.flat()) {
+    if (child == null || child === false) continue;
+    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  return node;
+};
+
+let state = null;
+let stateKey = "";
+let selected = null;   // tool id picked by click
+let drag = null;       // {tool, x, y, moved, pointerId}
+let pending = null;    // {tool, provider}
+
+const color = (provider) => {
+  const known = ["anthropic", "openai", "go", "openrouter"];
+  return `var(--c-${known.includes(provider) ? provider : "other"})`;
+};
+const providerById = (id) => state.providers.find((p) => p.id === id);
+const toolById = (id) => state.tools.find((t) => t.id === id);
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: { "X-HBridge-Token": TOKEN, ...(options.body ? { "Content-Type": "application/json" } : {}) },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+  return body;
+}
+
+function toast(message, isError = false) {
+  const node = $("toast");
+  node.textContent = message;
+  node.className = "toast show" + (isError ? " error" : "");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => (node.className = "toast" + (isError ? " error" : "")), isError ? 6000 : 3200);
+}
+
+// ---------------------------------------------------------------- rendering
+
+function render() {
+  const tools = $("tools");
+  const providers = $("providers");
+  tools.replaceChildren(...state.tools.map(toolCard));
+  providers.replaceChildren(...state.providers.map(providerCard));
+  renderDetail();
+  markTargets();
+  drawLinks();
+}
+
+function toolCard(tool) {
+  const provider = tool.provider && providerById(tool.provider);
+  const route = !tool.installed
+    ? el("div", { class: "route" }, el("span", { class: "chip" }, "Not installed"))
+    : tool.error
+      ? el("div", { class: "route" }, el("span", { class: "chip warn" }, "Error"), el("span", { class: "meta" }, tool.error))
+      : provider
+        ? el("div", { class: "route" }, el("span", { class: "swatch", style: `background:${color(provider.id)}` }), provider.label)
+        : el("div", { class: "route" }, el("span", { class: "chip warn" }, "Custom setup"));
+  const attrs = {
+    class: "card tool" + (tool.installed ? "" : " missing") + (selected === tool.id ? " selected" : ""),
+    dataset: { tool: tool.id },
+  };
+  const children = [
+    el("div", { class: "title" }, tool.label, el("span", { class: "mono" }, tool.id)),
+    tool.installed && tool.detail ? el("div", { class: "meta mono" }, tool.detail) : null,
+    route,
+    el("span", { class: "port", style: provider ? `border-color:${color(provider.id)}` : "" }),
+  ];
+  if (!tool.installed) {
+    return el("div", { ...attrs, "aria-disabled": "true", title: `${tool.label} is not installed` }, children);
+  }
+  return el("button", {
+    ...attrs,
+    type: "button",
+    "aria-pressed": selected === tool.id ? "true" : "false",
+    "aria-label": `${tool.label}, routed to ${provider ? provider.label : "a custom setup"}. Select to change.`,
+    onpointerdown: (event) => startDrag(event, tool.id),
+    onclick: (event) => { if (event.detail === 0) toggleSelect(tool.id); },
+    onpointerenter: () => highlight(tool.id),
+    onpointerleave: () => highlight(null),
+    onfocus: () => highlight(tool.id),
+    onblur: () => highlight(null),
+  }, children);
+}
+
+function providerCard(provider) {
+  const linked = state.tools.filter((t) => t.installed && t.provider === provider.id);
+  let key;
+  if (!provider.credential) key = el("div", { class: "key" }, "No key needed");
+  else if (provider.has_key) key = el("div", { class: "key" }, "✓ key from ", el("span", { class: "mono" }, provider.key_source));
+  else key = el("div", { class: "key bad" }, `⚠ no key found for “${provider.credential}”`);
+  return el("button", {
+    class: "card provider",
+    type: "button",
+    dataset: { provider: provider.id },
+    "aria-label": `${provider.label}. ${provider.description}`,
+    onclick: () => { if (selected) link(selected, provider.id); },
+  },
+    el("span", { class: "port", style: `border-color:${color(provider.id)}` }),
+    el("div", { class: "title" },
+      el("span", { class: "swatch", style: `background:${color(provider.id)}` }), provider.label),
+    el("div", { class: "meta" }, provider.description),
+    key,
+    linked.length ? el("div", { class: "linked" }, linked.map((t) => el("span", { class: "chip" }, t.label))) : null,
+  );
+}
+
+function renderDetail() {
+  const detail = $("detail");
+  const tool = selected && toolById(selected);
+  if (!tool) {
+    detail.replaceChildren(el("p", { class: "hint" },
+      "Tip: select a harness to see the equivalent commands. Press Esc to cancel a selection."));
+    return;
+  }
+  const rows = tool.supported.map((id) => {
+    const provider = providerById(id);
+    const current = tool.provider === id;
+    return el("tr", {},
+      el("td", {}, el("span", { class: "swatch", style: `background:${color(id)};display:inline-block;margin-right:6px` }),
+        provider ? provider.label : id, current ? el("span", { class: "chip ok", style: "margin-left:6px" }, "current") : null),
+      el("td", { class: "model mono" }, tool.models[id]),
+      el("td", {}, el("code", {}, `${tool.switch_command || "hbridge use " + tool.id} ${id}`)),
+      el("td", {}, el("code", {}, tool.one_shots[id])),
+    );
+  });
+  detail.replaceChildren(el("div", { class: "detail" },
+    el("h3", {}, `${tool.label}: pick a provider`),
+    el("p", {}, "Config file: ", el("span", { class: "mono" }, tool.config)),
+    el("div", { class: "table-wrap" }, el("table", {},
+      el("thead", {}, el("tr", {}, el("th", {}, "Provider"), el("th", {}, "Model"), el("th", {}, "Switch"), el("th", {}, "One run only"))),
+      el("tbody", {}, rows))),
+  ));
+}
+
+function markTargets() {
+  const active = drag?.moved ? drag.tool : selected;
+  const tool = active && toolById(active);
+  for (const card of document.querySelectorAll(".provider")) {
+    const id = card.dataset.provider;
+    card.classList.toggle("valid", !!tool && tool.supported.includes(id) && tool.provider !== id);
+    card.classList.toggle("invalid", !!tool && !tool.supported.includes(id));
+    card.toggleAttribute("disabled", !!tool && !tool.supported.includes(id));
+  }
+}
+
+function portCenter(card, side) {
+  const board = $("board").getBoundingClientRect();
+  const rect = card.getBoundingClientRect();
+  return { x: (side === "right" ? rect.right : rect.left) - board.left, y: rect.top + rect.height / 2 - board.top };
+}
+
+function curve(a, b) {
+  const dx = Math.max(40, (b.x - a.x) * 0.5);
+  return `M${a.x},${a.y} C${a.x + dx},${a.y} ${b.x - dx},${b.y} ${b.x},${b.y}`;
+}
+
+function drawLinks(pointer) {
+  if (!state) return;
+  const svg = $("links");
+  const paths = [];
+  for (const tool of state.tools) {
+    if (!tool.installed) continue;
+    const toolCardEl = document.querySelector(`.tool[data-tool="${tool.id}"]`);
+    const isPending = pending && pending.tool === tool.id;
+    const target = isPending ? pending.provider : tool.provider;
+    if (drag?.moved && drag.tool === tool.id) {
+      const from = portCenter(toolCardEl, "right");
+      paths.push(`<path class="drag" d="${curve(from, pointer || from)}" stroke="${color(tool.provider)}"/>`);
+      continue;
+    }
+    const providerEl = target && document.querySelector(`.provider[data-provider="${target}"]`);
+    if (!toolCardEl || !providerEl) continue;
+    const d = curve(portCenter(toolCardEl, "right"), portCenter(providerEl, "left"));
+    paths.push(`<path data-tool="${tool.id}" class="${isPending ? "pending" : ""}" d="${d}" stroke="${color(target)}"/>`);
+  }
+  svg.innerHTML = paths.join("");
+}
+
+function highlight(toolId) {
+  for (const path of document.querySelectorAll("#links path[data-tool]")) {
+    path.classList.toggle("dim", !!toolId && path.dataset.tool !== toolId);
+    path.classList.toggle("hot", !!toolId && path.dataset.tool === toolId);
+  }
+}
+
+// -------------------------------------------------------------- interaction
+
+function toggleSelect(toolId) {
+  selected = selected === toolId ? null : toolId;
+  render();
+  if (selected) document.querySelector(`.tool[data-tool="${selected}"]`)?.focus();
+}
+
+function startDrag(event, toolId) {
+  if (pending || event.button !== 0) return;
+  drag = { tool: toolId, x: event.clientX, y: event.clientY, moved: false, pointerId: event.pointerId };
+  event.currentTarget.setPointerCapture(event.pointerId);
+}
+
+function boardPoint(event) {
+  const board = $("board").getBoundingClientRect();
+  return { x: event.clientX - board.left, y: event.clientY - board.top };
+}
+
+function providerUnder(event) {
+  const card = document.elementFromPoint(event.clientX, event.clientY)?.closest(".provider");
+  return card ? card.dataset.provider : null;
+}
+
+document.addEventListener("pointermove", (event) => {
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5) return;
+  if (!drag.moved) {
+    drag.moved = true;
+    selected = null;
+    document.querySelector(`.tool[data-tool="${drag.tool}"]`)?.classList.add("dragging");
+    renderDetail();
+    markTargets();
+  }
+  const over = providerUnder(event);
+  for (const card of document.querySelectorAll(".provider")) card.classList.toggle("over", card.dataset.provider === over && card.classList.contains("valid"));
+  drawLinks(boardPoint(event));
+});
+
+document.addEventListener("pointerup", (event) => {
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  const { tool, moved } = drag;
+  drag = null;
+  document.querySelectorAll(".provider.over").forEach((c) => c.classList.remove("over"));
+  document.querySelector(".tool.dragging")?.classList.remove("dragging");
+  if (!moved) { toggleSelect(tool); return; }
+  const target = providerUnder(event);
+  markTargets();
+  if (target) link(tool, target); else drawLinks();
+});
+
+document.addEventListener("pointercancel", () => { drag = null; render(); });
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && selected) { selected = null; render(); }
+});
+window.addEventListener("resize", () => drawLinks());
+
+async function link(toolId, providerId) {
+  const tool = toolById(toolId);
+  const provider = providerById(providerId);
+  if (!tool || !provider) return;
+  if (!tool.supported.includes(providerId)) {
+    toast(`${tool.label} can't use ${provider.label}.`, true);
+    selected = null; render(); return;
+  }
+  if (tool.provider === providerId) {
+    toast(`${tool.label} already uses ${provider.label}.`);
+    selected = null; render(); return;
+  }
+  pending = { tool: toolId, provider: providerId };
+  selected = null;
+  render();
+  try {
+    const result = await api("/api/use", { method: "POST", body: JSON.stringify({ tool: toolId, provider: providerId }) });
+    pending = null;
+    apply(result.state, true);
+    const warn = provider.credential && !provider.has_key ? ` (no ${provider.credential} key found yet)` : "";
+    toast(`${tool.label} → ${provider.label}${warn}`, !!warn);
+  } catch (error) {
+    pending = null;
+    render();
+    toast(error.message, true);
+  }
+}
+
+// ------------------------------------------------------------------ polling
+
+function apply(next, force = false) {
+  const key = JSON.stringify(next);
+  if (!force && key === stateKey) return;
+  state = next;
+  stateKey = key;
+  if (selected && !toolById(selected)?.installed) selected = null;
+  render();
+}
+
+async function refresh() {
+  if (drag || pending) return;
+  try {
+    apply(await api("/api/state"));
+    $("live").className = "live";
+    $("live").lastElementChild.textContent = "live";
+    $("banner").replaceChildren();
+  } catch (error) {
+    $("live").className = "live stale";
+    $("live").lastElementChild.textContent = "disconnected";
+    if (!state) $("banner").replaceChildren(el("div", { class: "banner" },
+      `Could not reach hbridge (${error.message}). Is \`hbridge ui\` still running?`));
+  }
+}
+
+refresh();
+setInterval(() => { if (!document.hidden) refresh(); }, 4000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+</script>
+</body>
+</html>

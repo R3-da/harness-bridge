@@ -17,20 +17,24 @@ self = ""
 # ---------------------------------------------------------------------------
 
 [providers.anthropic]
-description = "Claude subscription (Claude Code's own /login)"
+label = "Claude subscription"
+description = "Claude Code's own /login"
 aliases = ["claude"]
 
 [providers.openai]
-description = "ChatGPT subscription (the tool's own ChatGPT/Codex login)"
+label = "ChatGPT subscription"
+description = "Each tool's own ChatGPT/Codex login"
 aliases = ["chatgpt", "openai-codex"]
 
 [providers.go]
-description = "OpenCode Go subscription"
+label = "OpenCode Go"
+description = "Flat-rate subscription, one key for every harness"
 aliases = ["opencode-go", "opencode"]
 credential = "opencode-go"
 
 [providers.openrouter]
-description = "OpenRouter (pay per token)"
+label = "OpenRouter"
+description = "Pay per token, one key for every harness"
 aliases = ["or"]
 credential = "openrouter"
 # One-shot command names: claude-openrouter and claude-or, codex-or, ...
@@ -70,6 +74,7 @@ sources = [
 # ---------------------------------------------------------------------------
 
 [tools.claude]
+label = "Claude Code"
 binary = "claude"
 subscription = "anthropic"
 # Environment variable that carries the provider key at launch.
@@ -100,6 +105,7 @@ CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = "1"
 # ---------------------------------------------------------------------------
 
 [tools.codex]
+label = "Codex"
 binary = "codex"
 subscription = "openai"
 # An inherited key beats the stored ChatGPT login and would silently move
@@ -134,6 +140,7 @@ wire_api = "responses"
 # ---------------------------------------------------------------------------
 
 [tools.kilo]
+label = "Kilo"
 binary = "kilo"
 subscription = "openai"
 
@@ -158,6 +165,7 @@ key_env = ["OPENROUTER_API_KEY"]
 # ---------------------------------------------------------------------------
 
 [tools.pi]
+label = "Pi"
 binary = "pi"
 subscription = "openai"
 
@@ -187,6 +195,7 @@ api_key_flag = true
 # ---------------------------------------------------------------------------
 
 [tools.hermes]
+label = "Hermes"
 binary = "hermes"
 subscription = "openai"
 

@@ -29,7 +29,7 @@ hbridge = "hbridge.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-hbridge = ["default_catalog.toml"]
+hbridge = ["default_catalog.toml", "ui.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
