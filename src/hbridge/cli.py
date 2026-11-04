@@ -57,16 +57,15 @@ def cmd_status(args: argparse.Namespace) -> int:
     width = max((len(name) for name in names), default=0)
     for name in names:
         tool = tools.get(catalog, name)
-        installed = tools.which(tool.spec.get("binary") or tool.name, dict(os.environ))
+        if not tools.which(tool.spec.get("binary") or tool.name, dict(os.environ)):
+            print(f"{tool.name:<{width}}  {'-':<12} not installed")
+            continue
         try:
             status = tool.status()
             provider = status.provider or "unrecognised"
-            line = f"{tool.name:<{width}}  {provider:<12} {status.detail}"
+            print(f"{tool.name:<{width}}  {provider:<12} {status.detail}")
         except HBridgeError as error:
-            line = f"{tool.name:<{width}}  {'error':<12} {error}"
-        if not installed:
-            line += "  [not installed]"
-        print(line)
+            print(f"{tool.name:<{width}}  {'error':<12} {error}")
     return 0
 
 

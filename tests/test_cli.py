@@ -93,3 +93,10 @@ def test_install_shims_with_explicit_command(home):
     assert main(["install-shims", "--dir", str(target), "--command", "/opt/hbridge/bin/hbridge", "codex"]) == 0
     assert {p.name for p in target.iterdir()} == {"cxuse", "codex-openai", "codex-go", "codex-openrouter", "codex-or"}
     assert "exec /opt/hbridge/bin/hbridge run codex go" in (target / "codex-go").read_text()
+
+
+def test_status_reports_missing_harnesses_plainly(home, capsys):
+    (home / "bin" / "hermes").unlink()
+    assert main(["status"]) == 0
+    hermes = [line for line in capsys.readouterr().out.splitlines() if line.startswith("hermes")]
+    assert hermes == ["hermes  -            not installed"]
