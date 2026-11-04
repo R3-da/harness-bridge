@@ -13,8 +13,16 @@ let
   # Config files (Codex auth commands, Claude Code's apiKeyHelper) call back
   # into agentuse. Point them at the profile, not the store path, so they
   # survive upgrades and garbage collection.
+  # Harness binaries by store path: with shims.wrap the profile's `claude`,
+  # `codex`, ... are the agentuse wrappers, so PATH lookup cannot reach the
+  # real ones.
+  harnessBinaries = lib.mapAttrs (tool: package: {
+    binary = lib.getExe' package (cfg.settings.tools.${tool}.binary or tool);
+  }) cfg.harnesses;
+
   settings = lib.recursiveUpdate {
     settings.self = "${config.home.profileDirectory}/bin/agentuse";
+    tools = harnessBinaries;
   } cfg.settings;
   generated = toml.generate "agentuse-catalog.toml" (
     settings
@@ -43,6 +51,24 @@ in
       default = self.packages.${pkgs.stdenv.hostPlatform.system}.default;
       defaultText = lib.literalExpression "agentuse.packages.\${system}.default";
       description = "The agentuse package.";
+    };
+
+    harnesses = lib.mkOption {
+      type = lib.types.attrsOf lib.types.package;
+      default = { };
+      example = lib.literalExpression ''
+        {
+          claude = pkgs.claude-code;
+          codex = pkgs.codex;
+        }
+      '';
+      description = ''
+        Harness packages to install and launch, keyed by tool name (`claude`,
+        `codex`, `kilo`, `pi`, `hermes`). agentuse runs them by store path,
+        which {option}`programs.agentuse.shims.wrap` requires: the wrappers
+        take over the profile's `claude`, `codex`, ... entries. The packages'
+        other binaries stay on PATH.
+      '';
     };
 
     settings = lib.mkOption {
@@ -98,7 +124,13 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ cfg.package ] ++ lib.optional cfg.shims.enable shims;
+    home.packages = [ cfg.package ] ++ lib.attrValues cfg.harnesses ++ lib.optional cfg.shims.enable shims;
+
+    warnings = lib.optional (cfg.shims.wrap && cfg.harnesses == { }) ''
+      programs.agentuse.shims.wrap is set without programs.agentuse.harnesses:
+      the wrappers shadow the harness binaries in your profile, so agentuse
+      can only find them if they are installed outside it.
+    '';
     # Always at the default path: surfaces that call `agentuse key` from a
     # desktop app or IDE do not inherit shell variables like AGENTUSE_CATALOG.
     xdg.configFile."agentuse/catalog.toml".source = generated;

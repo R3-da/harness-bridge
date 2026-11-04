@@ -180,6 +180,10 @@ file's permissions.
   programs.agentuse = {
     enable = true;
     shims.wrap = true;               # claude/codex/... inject keys on launch
+    harnesses = {                    # installed, and launched by store path
+      claude = pkgs.claude-code;
+      codex = pkgs.codex;
+    };
     # Machine-specific values, generated into ~/.config/agentuse/catalog.toml:
     settings.credentials.opencode-go.sources = [
       { file = config.sops.secrets.opencode_go_api_key.path; }
@@ -189,6 +193,10 @@ file's permissions.
   };
 }
 ```
+
+With `shims.wrap`, the wrappers take over the profile's `claude`, `codex`,
+… entries, so list the harnesses in `harnesses`: agentuse then launches them
+by store path, and the rest of each package stays on PATH.
 
 The module installs the package, writes `~/.config/agentuse/catalog.toml`
 (with `catalogFile` as an `include`), and builds the shims from the built-in
