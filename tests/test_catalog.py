@@ -31,3 +31,25 @@ def test_invalid_user_catalog(home):
     (home / "catalog.toml").write_text("not = [valid")
     with pytest.raises(AgentuseError, match="invalid TOML"):
         Catalog.load()
+
+
+def test_includes_merge_before_own_keys(home):
+    (home / "models.toml").write_text(
+        '[tools.codex.providers.go]\nmodel = "from-include"\n'
+        '[tools.kilo.providers.go]\nmodel = "opencode-go/from-include"\n'
+    )
+    (home / "catalog.toml").write_text(
+        'include = ["models.toml", "~/absent.toml"]\n'
+        '[tools.kilo.providers.go]\nmodel = "opencode-go/own"\n'
+    )
+    catalog = Catalog.load()
+    assert catalog.tool_providers("codex")["go"]["model"] == "from-include"
+    assert catalog.tool_providers("kilo")["go"]["model"] == "opencode-go/own"
+    assert catalog.missing == [str(home / "absent.toml")]
+    assert catalog.sources[1:] == [str(home / "models.toml"), str(home / "catalog.toml")]
+
+
+def test_include_cycle(home):
+    (home / "catalog.toml").write_text('include = ["catalog.toml"]\n')
+    with pytest.raises(AgentuseError, match="cycle"):
+        Catalog.load()

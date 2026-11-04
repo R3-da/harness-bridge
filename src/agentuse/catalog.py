@@ -39,24 +39,48 @@ def deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _load_file(
+    path: Path, data: dict[str, Any], sources: list[str], missing: list[str], seen: set[Path]
+) -> dict[str, Any]:
+    """Merge `path` into `data`: its includes first, then its own keys."""
+    resolved = path.resolve()
+    if resolved in seen:
+        raise AgentuseError(f"catalog include cycle at {path}")
+    seen.add(resolved)
+    try:
+        overlay = tomllib.loads(path.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as error:
+        raise AgentuseError(f"invalid TOML in {path}: {error}") from error
+    includes = overlay.pop("include", [])
+    if isinstance(includes, str):
+        includes = [includes]
+    for include in includes:
+        target = expand(include)
+        if not target.is_absolute():
+            target = path.parent / target
+        if target.exists():
+            data = _load_file(target, data, sources, missing, seen)
+        else:
+            missing.append(str(target))
+    sources.append(str(path))
+    return deep_merge(data, overlay)
+
+
 @dataclass
 class Catalog:
     data: dict[str, Any]
     sources: list[str] = field(default_factory=list)
+    missing: list[str] = field(default_factory=list)
 
     @classmethod
     def load(cls, path: Path | None = None) -> "Catalog":
+        """Built-in defaults, then the user catalog (and anything it includes)."""
         data = tomllib.loads(default_catalog_text())
-        sources = ["built-in"]
+        sources, missing = ["built-in"], []
         path = path or user_catalog_path()
         if path.exists():
-            try:
-                overlay = tomllib.loads(path.read_text(encoding="utf-8"))
-            except tomllib.TOMLDecodeError as error:
-                raise AgentuseError(f"invalid TOML in {path}: {error}") from error
-            data = deep_merge(data, overlay)
-            sources.append(str(path))
-        return cls(data, sources)
+            data = _load_file(path, data, sources, missing, set())
+        return cls(data, sources, missing)
 
     # -- sections ---------------------------------------------------------
 

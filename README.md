@@ -180,19 +180,25 @@ file's permissions.
   programs.agentuse = {
     enable = true;
     shims.wrap = true;               # claude/codex/... inject keys on launch
-    settings = {
-      credentials.opencode-go.sources = [ { file = "/run/secrets/opencode_go_api_key"; } ];
-      tools.codex.providers.go.model = "glm-5.3";
-    };
-    # Or keep an editable catalog in your dotfiles instead of `settings`:
-    # catalogFile = "${config.home.homeDirectory}/dotfiles/agentuse.toml";
+    # Machine-specific values, generated into ~/.config/agentuse/catalog.toml:
+    settings.credentials.opencode-go.sources = [
+      { file = config.sops.secrets.opencode_go_api_key.path; }
+    ];
+    # Models you want to edit without a rebuild, in your dotfiles:
+    catalogFile = "${config.home.homeDirectory}/dotfiles/agentuse.toml";
   };
 }
 ```
 
-The module installs the package and builds the shims from the built-in
-catalog plus `settings`. If you add providers only in a `catalogFile`, run
-`agentuse install-shims` yourself to get their one-shot commands.
+The module installs the package, writes `~/.config/agentuse/catalog.toml`
+(with `catalogFile` as an `include`), and builds the shims from the built-in
+catalog plus `settings`. It sets `settings.self` to the profile's
+`bin/agentuse`, so commands written into config files survive upgrades and
+garbage collection. Providers that exist only in `catalogFile` get no
+one-shot shims; run `agentuse install-shims` for those.
+
+A catalog can `include` other catalogs. They are merged before the
+including file's own keys: `include = ["~/dotfiles/agentuse.toml"]`.
 `nix build` runs the test suite.
 
 ## Development

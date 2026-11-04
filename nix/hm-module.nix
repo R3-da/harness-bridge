@@ -9,12 +9,25 @@ self:
 let
   cfg = config.programs.agentuse;
   toml = pkgs.formats.toml { };
-  generated = toml.generate "agentuse-catalog.toml" cfg.settings;
+
+  # Config files (Codex auth commands, Claude Code's apiKeyHelper) call back
+  # into agentuse. Point them at the profile, not the store path, so they
+  # survive upgrades and garbage collection.
+  settings = lib.recursiveUpdate {
+    settings.self = "${config.home.profileDirectory}/bin/agentuse";
+  } cfg.settings;
+  generated = toml.generate "agentuse-catalog.toml" (
+    settings
+    // lib.optionalAttrs (cfg.catalogFile != null) {
+      include = [ cfg.catalogFile ] ++ (cfg.settings.include or [ ]);
+    }
+  );
 
   # Shims are generated at build time from the built-in catalog plus
-  # `settings`, so they call agentuse by its store path.
+  # `settings` (never the mutable catalogFile, which the build cannot see),
+  # and call agentuse by its store path.
   shims = pkgs.runCommand "agentuse-shims" { meta.priority = if cfg.shims.wrap then 4 else 5; } ''
-    export HOME="$TMPDIR" AGENTUSE_CATALOG=${generated}
+    export HOME="$TMPDIR" AGENTUSE_CATALOG=${toml.generate "agentuse-shim-catalog.toml" settings}
     ${lib.getExe cfg.package} install-shims --dir "$out/bin" \
       --command ${lib.escapeShellArg (lib.getExe cfg.package)} \
       ${lib.optionalString cfg.shims.wrap "--wrap"} \
@@ -44,8 +57,7 @@ in
       '';
       description = ''
         Catalog entries merged over the built-in defaults, written to
-        {file}`~/.config/agentuse/catalog.toml`. Ignored when
-        {option}`programs.agentuse.catalogFile` is set.
+        {file}`~/.config/agentuse/catalog.toml`.
       '';
     };
 
@@ -54,8 +66,10 @@ in
       default = null;
       example = "\${config.home.homeDirectory}/dotfiles/agentuse/catalog.toml";
       description = ''
-        Use an existing, editable catalog file instead of generating one from
-        {option}`programs.agentuse.settings`. Exported as `AGENTUSE_CATALOG`.
+        An editable catalog (for example in your dotfiles repository) that the
+        generated catalog includes. It is merged after the built-in defaults
+        and before {option}`programs.agentuse.settings`, so keep models here
+        and machine-specific values such as secret paths in `settings`.
       '';
     };
 
@@ -85,11 +99,8 @@ in
 
   config = lib.mkIf cfg.enable {
     home.packages = [ cfg.package ] ++ lib.optional cfg.shims.enable shims;
-    xdg.configFile."agentuse/catalog.toml" = lib.mkIf (cfg.catalogFile == null && cfg.settings != { }) {
-      source = generated;
-    };
-    home.sessionVariables = lib.mkIf (cfg.catalogFile != null) {
-      AGENTUSE_CATALOG = cfg.catalogFile;
-    };
+    # Always at the default path: surfaces that call `agentuse key` from a
+    # desktop app or IDE do not inherit shell variables like AGENTUSE_CATALOG.
+    xdg.configFile."agentuse/catalog.toml".source = generated;
   };
 }

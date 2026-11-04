@@ -35,6 +35,10 @@ STARTER_CATALOG = """\
 # [tools.codex.providers.go]
 # model = "glm-5.3"
 
+# Example: keep the models in a dotfiles repository and merge them in.
+# Included files are merged before this file's own keys.
+# include = ["~/dotfiles/agentuse.toml"]
+
 # Example: if your configs are synced across machines, store "agentuse"
 # instead of an absolute path in Codex auth commands and apiKeyHelper.
 # [settings]
@@ -155,6 +159,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     catalog = _catalog(args)
     problems = 0
     print(f"catalog: {', '.join(catalog.sources)}")
+    for path in catalog.missing:
+        print(f"  problem  included catalog not found: {path}")
+        problems += 1
     print(f"agentuse command in configs: {' '.join(tools.self_command(catalog))}")
     print("credentials:")
     for name in catalog.credentials:
