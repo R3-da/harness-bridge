@@ -1,0 +1,206 @@
+# agentuse built-in catalog.
+#
+# Your own catalog ($AGENTUSE_CATALOG, or ~/.config/agentuse/catalog.toml) is
+# deep-merged on top of this file, so it only needs the keys you change.
+# `agentuse catalog` prints the merged result.
+
+[settings]
+# How config files refer back to agentuse (Codex auth commands, Claude Code's
+# apiKeyHelper). Empty means "the absolute path of the running agentuse".
+# Set it to "agentuse" if your configs are shared between machines and
+# agentuse is on PATH everywhere.
+self = ""
+
+# ---------------------------------------------------------------------------
+# Providers: the names you type (`ccuse go`, `codex-or`, ...).
+# `sub` / `subscription` always mean the tool's own subscription provider.
+# ---------------------------------------------------------------------------
+
+[providers.anthropic]
+description = "Claude subscription (Claude Code's own /login)"
+aliases = ["claude"]
+
+[providers.openai]
+description = "ChatGPT subscription (the tool's own ChatGPT/Codex login)"
+aliases = ["chatgpt", "openai-codex"]
+
+[providers.go]
+description = "OpenCode Go subscription"
+aliases = ["opencode-go", "opencode"]
+credential = "opencode-go"
+
+[providers.openrouter]
+description = "OpenRouter (pay per token)"
+aliases = ["or"]
+credential = "openrouter"
+# One-shot command names: claude-openrouter and claude-or, codex-or, ...
+shim_names = ["openrouter", "or"]
+
+# ---------------------------------------------------------------------------
+# Credentials: where keys come from. The first source that yields a value
+# wins. Keys are only ever injected into a process environment or printed by
+# `agentuse key <name>`; they are never written into a config file.
+#
+# Source kinds:
+#   { env = "NAME" }                         an environment variable
+#   { file = "~/path" }                      a file holding the key
+#   { command = ["op", "read", "op://..."] } stdout of a command
+#   { opencode_auth = "opencode-go" }        an entry in OpenCode's auth.json
+#                                            (`opencode auth login` writes it;
+#                                            optional `path = "..."`)
+# ---------------------------------------------------------------------------
+
+[credentials.opencode-go]
+sources = [
+  { env = "OPENCODE_GO_API_KEY" },
+  { env = "OPENCODE_API_KEY" },
+  { opencode_auth = "opencode-go" },
+]
+
+[credentials.openrouter]
+sources = [
+  { env = "OPENROUTER_API_KEY" },
+  { opencode_auth = "openrouter" },
+]
+
+# ---------------------------------------------------------------------------
+# Claude Code: `agentuse use claude <provider>` rewrites the `env` block of
+# settings.json (and apiKeyHelper, so the VS Code extension and other
+# surfaces that bypass the shell get the key too).
+# ---------------------------------------------------------------------------
+
+[tools.claude]
+binary = "claude"
+subscription = "anthropic"
+# Environment variable that carries the provider key at launch.
+token_env = "ANTHROPIC_AUTH_TOKEN"
+
+[tools.claude.providers.anthropic]
+
+[tools.claude.providers.go.env]
+ANTHROPIC_BASE_URL = "https://opencode.ai/inference/go/anthropic"
+ANTHROPIC_DEFAULT_OPUS_MODEL = "claude-haiku-5-5"
+ANTHROPIC_DEFAULT_SONNET_MODEL = "claude-haiku-5-5"
+ANTHROPIC_DEFAULT_HAIKU_MODEL = "claude-haiku-5-5"
+CLAUDE_CODE_SUBAGENT_MODEL = "claude-haiku-5-5"
+CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = "1"
+
+[tools.claude.providers.openrouter.env]
+ANTHROPIC_BASE_URL = "https://openrouter.ai/api"
+ANTHROPIC_DEFAULT_OPUS_MODEL = "minimax/minimax-m3"
+ANTHROPIC_DEFAULT_SONNET_MODEL = "minimax/minimax-m3"
+ANTHROPIC_DEFAULT_HAIKU_MODEL = "minimax/minimax-m3"
+CLAUDE_CODE_SUBAGENT_MODEL = "minimax/minimax-m3"
+CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = "1"
+
+# ---------------------------------------------------------------------------
+# Codex: `agentuse use codex <provider>` sets the top-level model and
+# model_provider in config.toml (the ChatGPT desktop app reads that file
+# directly) and adds the [model_providers.*] table if it is missing.
+# ---------------------------------------------------------------------------
+
+[tools.codex]
+binary = "codex"
+subscription = "openai"
+# An inherited key beats the stored ChatGPT login and would silently move
+# you off the subscription.
+unset_env = ["OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_API_KEY"]
+
+[tools.codex.providers.openai]
+model = "gpt-5.4"
+model_provider = "openai"
+
+[tools.codex.providers.go]
+model = "deepseek-v4.1-flash"
+model_provider = "opencode_go"
+
+[tools.codex.providers.go.provider_table]
+name = "OpenCode Go"
+base_url = "https://opencode.ai/zen/go/v1"
+wire_api = "responses"
+
+[tools.codex.providers.openrouter]
+model = "deepseek/deepseek-v4.1-flash"
+model_provider = "openrouter"
+
+[tools.codex.providers.openrouter.provider_table]
+name = "OpenRouter"
+base_url = "https://openrouter.ai/api/v1"
+wire_api = "responses"
+
+# ---------------------------------------------------------------------------
+# Kilo: `agentuse use kilo <provider>` sets model/small_model in kilo.jsonc
+# and the active model in Kilo's state file (Kilo prefers the state file).
+# ---------------------------------------------------------------------------
+
+[tools.kilo]
+binary = "kilo"
+subscription = "openai"
+
+[tools.kilo.providers.openai]
+model = "openai/gpt-5.4"
+small_model = "openai/gpt-5.4-mini"
+unset_env = ["OPENAI_API_KEY"]
+
+[tools.kilo.providers.go]
+model = "opencode-go/deepseek-v4.1-flash"
+small_model = "opencode-go/glm-5.3-flash"
+key_env = ["OPENCODE_API_KEY"]
+
+[tools.kilo.providers.openrouter]
+model = "openrouter/deepseek/deepseek-v4.1-flash"
+small_model = "openrouter/deepseek/deepseek-v4.1-flash"
+key_env = ["OPENROUTER_API_KEY"]
+
+# ---------------------------------------------------------------------------
+# Pi: `agentuse use pi <provider>` sets defaultProvider, defaultModel and an
+# exact enabledModels scope in ~/.pi/agent/settings.json.
+# ---------------------------------------------------------------------------
+
+[tools.pi]
+binary = "pi"
+subscription = "openai"
+
+[tools.pi.providers.openai]
+provider = "openai-codex"
+model = "gpt-5.4"
+unset_env = ["OPENCODE_API_KEY", "OPENROUTER_API_KEY"]
+
+[tools.pi.providers.go]
+provider = "opencode-go"
+model = "deepseek-v4.1-flash"
+# Pi names the Go credential OPENCODE_API_KEY.
+key_env = ["OPENCODE_API_KEY"]
+# One-shots also pass --api-key, which beats a stale entry in Pi's auth.json.
+api_key_flag = true
+
+[tools.pi.providers.openrouter]
+provider = "openrouter"
+model = "deepseek/deepseek-v4.1-flash"
+key_env = ["OPENROUTER_API_KEY"]
+api_key_flag = true
+
+# ---------------------------------------------------------------------------
+# Hermes: `agentuse use hermes <provider>` runs `hermes config set` for
+# model.provider and model.default, so unrelated settings are preserved.
+# OpenCode Go needs Hermes 0.21.5 or newer (x-opencode-session header).
+# ---------------------------------------------------------------------------
+
+[tools.hermes]
+binary = "hermes"
+subscription = "openai"
+
+[tools.hermes.providers.openai]
+provider = "openai-codex"
+model = "gpt-5.4"
+unset_env = ["OPENAI_API_KEY"]
+
+[tools.hermes.providers.go]
+provider = "opencode-go"
+model = "deepseek-v4.1-flash"
+key_env = ["OPENCODE_API_KEY"]
+
+[tools.hermes.providers.openrouter]
+provider = "openrouter"
+model = "deepseek/deepseek-v4.1-flash"
+key_env = ["OPENROUTER_API_KEY"]

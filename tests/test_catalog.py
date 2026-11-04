@@ -1,0 +1,33 @@
+import pytest
+
+from agentuse import AgentuseError
+from agentuse.catalog import Catalog, deep_merge
+
+
+def test_deep_merge_overrides_leaves_only():
+    merged = deep_merge({"a": {"b": 1, "c": 2}, "d": [1]}, {"a": {"b": 9}, "d": [2]})
+    assert merged == {"a": {"b": 9, "c": 2}, "d": [2]}
+
+
+def test_user_catalog_merges_on_defaults(home):
+    (home / "catalog.toml").write_text('[tools.codex.providers.go]\nmodel = "glm-5.3"\n')
+    catalog = Catalog.load()
+    go = catalog.tool_providers("codex")["go"]
+    assert go["model"] == "glm-5.3"
+    assert go["model_provider"] == "opencode_go"  # untouched default
+    assert len(catalog.sources) == 2
+
+
+def test_aliases_and_subscription(catalog):
+    assert catalog.resolve_provider("claude", "sub") == "anthropic"
+    assert catalog.resolve_provider("codex", "subscription") == "openai"
+    assert catalog.resolve_provider("kilo", "or") == "openrouter"
+    assert catalog.resolve_provider("pi", "opencode-go") == "go"
+    with pytest.raises(AgentuseError, match="unknown provider"):
+        catalog.resolve_provider("codex", "anthropic")
+
+
+def test_invalid_user_catalog(home):
+    (home / "catalog.toml").write_text("not = [valid")
+    with pytest.raises(AgentuseError, match="invalid TOML"):
+        Catalog.load()

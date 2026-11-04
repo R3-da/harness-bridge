@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentuse"
+version = "0.1.0"
+description = "Switch Claude Code, Codex, Kilo, Pi and Hermes between subscriptions, OpenCode Go and OpenRouter from one catalog"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [{ name = "Reda Haddan" }]
+keywords = ["claude-code", "codex", "opencode", "openrouter", "kilo", "llm", "cli"]
+classifiers = [
+  "Environment :: Console",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+agentuse = "agentuse.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agentuse = ["default_catalog.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
