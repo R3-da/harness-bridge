@@ -1,8 +1,19 @@
-# harness-bridge
+<p align="center">
+  <img src="docs/assets/logo.svg" width="96" alt="harness-bridge logo">
+</p>
 
-One catalog and one command, `hbridge`, to point your coding-agent harnesses at the
-provider you want: their own subscription, an **OpenCode Go** subscription,
-or **OpenRouter**.
+<h1 align="center">harness-bridge</h1>
+
+<p align="center">
+  One catalog and one command, <code>hbridge</code>, to point your coding-agent
+  harnesses at the provider you want: their own subscription, an
+  <strong>OpenCode Go</strong> subscription, or <strong>OpenRouter</strong>.
+</p>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshot-dark.png">
+  <img src="docs/assets/screenshot-light.png" alt="hbridge ui: harnesses on the left linked to providers on the right; Kilo is grayed out as not installed">
+</picture>
 
 ```console
 $ hbridge status
@@ -93,6 +104,8 @@ removes files that hbridge wrote.
 ```sh
 hbridge ui            # opens the routing page in your browser
 ```
+
+![Dragging Codex onto OpenCode Go, then clicking Claude Code and OpenRouter](docs/assets/demo.gif)
 
 Your harnesses are listed on the left and providers on the right, with a
 line for each current route. Drag a harness onto a provider, or click one
@@ -241,6 +254,11 @@ uv run --with pytest python -m pytest      # or: nix flake check
 
 The tests use fake harness binaries and a temporary `HOME`; they never touch
 your real configuration.
+
+`scripts/capture_media.py` regenerates the screenshots and the demo GIF in
+`docs/assets/` from a throwaway demo home (see its docstring).
+
+Planned work is tracked in [TODO.md](TODO.md).
 
 ## License
 

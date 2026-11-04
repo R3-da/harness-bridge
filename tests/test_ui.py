@@ -90,3 +90,10 @@ def test_use_errors(server, home):
     status, _ = request(server, "POST", "/api/use", body={"oops": 1})
     assert status == 400
     assert request(server, "POST", "/api/use", body={"tool": "codex", "provider": "go"}, token=False)[0] == 403
+
+
+def test_paths_are_shown_relative_to_home(home):
+    state = ui.build_state(Catalog.load())
+    codex = next(t for t in state["tools"] if t["id"] == "codex")
+    assert codex["config"] == "~/.codex/config.toml"
+    assert codex["binary"] == "~/bin/codex"

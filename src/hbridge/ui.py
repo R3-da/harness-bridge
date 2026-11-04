@@ -38,6 +38,14 @@ def _one_shot(catalog: Catalog, tool: str, provider: str) -> str:
     return f"{prefix}-{min(names, key=len)}"
 
 
+def display(text: str | None) -> str | None:
+    """Show paths under the home directory as ~/..."""
+    if not text:
+        return text
+    home = str(Path.home())
+    return text.replace(home + "/", "~/") if home not in ("", "/") else text
+
+
 def build_state(catalog: Catalog) -> dict[str, Any]:
     """Everything the page draws. Contains no secrets."""
     providers = []
@@ -56,7 +64,7 @@ def build_state(catalog: Catalog) -> dict[str, Any]:
                 "description": spec.get("description") or "",
                 "credential": credential,
                 "has_key": has_key,
-                "key_source": key_source,
+                "key_source": display(key_source),
             }
         )
 
@@ -68,8 +76,8 @@ def build_state(catalog: Catalog) -> dict[str, Any]:
             "id": name,
             "label": tool.spec.get("label") or name,
             "installed": binary is not None,
-            "binary": binary,
-            "config": str(tool.config_path()),
+            "binary": display(binary),
+            "config": display(str(tool.config_path())),
             "subscription": tool.spec.get("subscription"),
             "supported": list(catalog.tool_providers(name)),
             "models": {
@@ -92,13 +100,13 @@ def build_state(catalog: Catalog) -> dict[str, Any]:
             try:
                 status = tool.status()
                 entry["provider"] = status.provider
-                entry["detail"] = status.detail
+                entry["detail"] = display(status.detail)
             except HBridgeError as error:
                 entry["error"] = str(error)
         harnesses.append(entry)
     return {
         "version": __version__,
-        "catalog": catalog.sources,
+        "catalog": [display(source) for source in catalog.sources],
         "providers": providers,
         "tools": harnesses,
     }

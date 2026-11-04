@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="harness-bridge logo">
+  <title>harness-bridge</title>
+  <defs>
+    <linearGradient id="link" x1="18" y1="27" x2="46" y2="37" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c96442"/>
+      <stop offset="0.5" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <!-- Left post: the harnesses. Right post: the providers. -->
+  <rect x="7" y="8" width="11" height="48" rx="5.5" fill="#c96442"/>
+  <rect x="46" y="8" width="11" height="48" rx="5.5" fill="#7c3aed"/>
+  <!-- The crossbar of the H is a routing link, as drawn in `hbridge ui`. -->
+  <path d="M18 27.5 C 32 27.5, 32 36.5, 46 36.5" fill="none" stroke="url(#link)" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="18" cy="27.5" r="4.2" fill="#ffffff" stroke="#c96442" stroke-width="2.6"/>
+  <circle cx="46" cy="36.5" r="4.2" fill="#ffffff" stroke="#7c3aed" stroke-width="2.6"/>
+</svg>
