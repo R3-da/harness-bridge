@@ -27,6 +27,7 @@ from hbridge.files import (
 )
 
 SHIM_MARKER = "# hbridge-shim"
+NOT_CONFIGURED = "not configured"
 
 
 def _xdg(name: str, fallback: str) -> Path:
@@ -407,7 +408,7 @@ class Kilo(Tool):
         else:
             model = str(read_json(self.config_path(), jsonc=True).get("model", ""))
         if not model:
-            return Status(None, "no model set")
+            return Status(None, NOT_CONFIGURED)
         providers = self.catalog.tool_providers(self.name)
         for name, spec in providers.items():
             if spec.get("model") == model:
@@ -454,6 +455,8 @@ class Pi(Tool):
     def status(self) -> Status:
         settings = read_json(self.config_path())
         target = settings.get("defaultProvider")
+        if not target:
+            return Status(None, NOT_CONFIGURED)
         return self.match_status("provider", target, f"{target}/{settings.get('defaultModel')}")
 
     def launch_args(self, provider, env):
@@ -504,6 +507,8 @@ class Hermes(Tool):
     def status(self) -> Status:
         target = self._hermes("config", "get", "model.provider")
         model = self._hermes("config", "get", "model.default")
+        if not target:
+            return Status(None, NOT_CONFIGURED)
         return self.match_status("provider", target, f"{target}/{model}")
 
     def launch_args(self, provider, env):

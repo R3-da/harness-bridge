@@ -262,3 +262,9 @@ def test_binary_lookup_skips_shims(home, catalog):
     shim.chmod(0o755)
     env = {"PATH": f"{shim_dir}:{home / 'bin'}"}
     assert tools.which("codex", env) == str(home / "bin/codex")
+
+
+def test_unconfigured_harnesses_say_so(home, catalog):
+    assert tools.get(catalog, "pi").status() == tools.Status(None, tools.NOT_CONFIGURED)
+    assert tools.get(catalog, "kilo").status() == tools.Status(None, tools.NOT_CONFIGURED)
+    assert tools.get(catalog, "hermes").status() == tools.Status(None, tools.NOT_CONFIGURED)

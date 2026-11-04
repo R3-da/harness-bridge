@@ -254,14 +254,16 @@ function toolCard(tool) {
       ? el("div", { class: "route" }, el("span", { class: "chip warn" }, "Error"), el("span", { class: "meta" }, tool.error))
       : provider
         ? el("div", { class: "route" }, el("span", { class: "swatch", style: `background:${color(provider.id)}` }), provider.label)
-        : el("div", { class: "route" }, el("span", { class: "chip warn" }, "Custom setup"));
+        : tool.detail === "not configured"
+          ? el("div", { class: "route" }, el("span", { class: "chip" }, "Not configured yet"))
+          : el("div", { class: "route" }, el("span", { class: "chip warn" }, "Custom setup"));
   const attrs = {
     class: "card tool" + (tool.installed ? "" : " missing") + (selected === tool.id ? " selected" : ""),
     dataset: { tool: tool.id },
   };
   const children = [
     el("div", { class: "title" }, tool.label, el("span", { class: "mono" }, tool.id)),
-    tool.installed && tool.detail ? el("div", { class: "meta mono" }, tool.detail) : null,
+    tool.installed && tool.detail && tool.detail !== "not configured" ? el("div", { class: "meta mono" }, tool.detail) : null,
     route,
     el("span", { class: "port", style: provider ? `border-color:${color(provider.id)}` : "" }),
   ];
@@ -272,7 +274,7 @@ function toolCard(tool) {
     ...attrs,
     type: "button",
     "aria-pressed": selected === tool.id ? "true" : "false",
-    "aria-label": `${tool.label}, routed to ${provider ? provider.label : "a custom setup"}. Select to change.`,
+    "aria-label": `${tool.label}, routed to ${provider ? provider.label : tool.detail === "not configured" ? "nothing yet" : "a custom setup"}. Select to change.`,
     onpointerdown: (event) => startDrag(event, tool.id),
     onclick: (event) => { if (event.detail === 0) toggleSelect(tool.id); },
     onpointerenter: () => highlight(tool.id),
