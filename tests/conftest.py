@@ -8,12 +8,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from agentuse.catalog import Catalog  # noqa: E402
+from hbridge.catalog import Catalog  # noqa: E402
 
 KEY_VARS = [
     "OPENCODE_GO_API_KEY", "OPENCODE_API_KEY", "OPENROUTER_API_KEY", "OPENAI_API_KEY",
     "OPENAI_BASE_URL", "CODEX_API_KEY", "ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN",
-    "ANTHROPIC_API_KEY", "AGENTUSE_CATALOG", "OPENCODE_AUTH_FILE",
+    "ANTHROPIC_API_KEY", "HBRIDGE_CATALOG", "OPENCODE_AUTH_FILE",
 ]
 
 HERMES_FAKE = """#!/usr/bin/env python3
@@ -58,8 +58,8 @@ def home(tmp_path, monkeypatch):
         Path(value).mkdir(parents=True, exist_ok=True)
         monkeypatch.setenv(key, str(value))
     monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}/usr/bin{os.pathsep}/bin")
-    monkeypatch.setenv("AGENTUSE_CATALOG", str(tmp_path / "catalog.toml"))
-    (tmp_path / "catalog.toml").write_text('[settings]\nself = "agentuse"\n')
+    monkeypatch.setenv("HBRIDGE_CATALOG", str(tmp_path / "catalog.toml"))
+    (tmp_path / "catalog.toml").write_text('[settings]\nself = "hbridge"\n')
     return tmp_path
 
 

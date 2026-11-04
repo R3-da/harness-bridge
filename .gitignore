@@ -6,3 +6,4 @@ build/
 dist/
 result
 result-*
+uv.lock

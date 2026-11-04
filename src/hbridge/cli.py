@@ -1,4 +1,4 @@
-"""agentuse command line."""
+"""hbridge command line."""
 
 from __future__ import annotations
 
@@ -9,23 +9,23 @@ import shlex
 import sys
 from pathlib import Path
 
-from agentuse import AgentuseError, __version__, credentials, shims, tools
-from agentuse.catalog import Catalog, user_catalog_path
-from agentuse.files import expand
+from hbridge import HBridgeError, __version__, credentials, shims, tools
+from hbridge.catalog import Catalog, user_catalog_path
+from hbridge.files import expand
 
 USAGE_EXAMPLES = """\
 examples:
-  agentuse status                    every harness and its provider
-  agentuse use codex go              Codex on OpenCode Go from now on
-  agentuse use claude sub            Claude Code back on the subscription
-  agentuse run kilo openrouter       one OpenRouter session, config untouched
-  agentuse run codex go -- exec "fix the tests"
-  agentuse install-shims             ccuse, cxuse, claude-go, codex-or, ...
+  hbridge status                    every harness and its provider
+  hbridge use codex go              Codex on OpenCode Go from now on
+  hbridge use claude sub            Claude Code back on the subscription
+  hbridge run kilo openrouter       one OpenRouter session, config untouched
+  hbridge run codex go -- exec "fix the tests"
+  hbridge install-shims             ccuse, cxuse, claude-go, codex-or, ...
 """
 
 STARTER_CATALOG = """\
-# agentuse catalog: merged on top of the built-in defaults.
-# See every default with `agentuse catalog`. Only list what you change.
+# hbridge catalog: merged on top of the built-in defaults.
+# See every default with `hbridge catalog`. Only list what you change.
 
 # Example: read the OpenCode Go key from 1Password instead.
 # [credentials.opencode-go]
@@ -37,12 +37,12 @@ STARTER_CATALOG = """\
 
 # Example: keep the models in a dotfiles repository and merge them in.
 # Included files are merged before this file's own keys.
-# include = ["~/dotfiles/agentuse.toml"]
+# include = ["~/dotfiles/hbridge.toml"]
 
-# Example: if your configs are synced across machines, store "agentuse"
+# Example: if your configs are synced across machines, store "hbridge"
 # instead of an absolute path in Codex auth commands and apiKeyHelper.
 # [settings]
-# self = "agentuse"
+# self = "hbridge"
 """
 
 
@@ -61,7 +61,7 @@ def cmd_status(args: argparse.Namespace) -> int:
             status = tool.status()
             provider = status.provider or "unrecognised"
             line = f"{tool.name:<{width}}  {provider:<12} {status.detail}"
-        except AgentuseError as error:
+        except HBridgeError as error:
             line = f"{tool.name:<{width}}  {'error':<12} {error}"
         if not installed:
             line += "  [not installed]"
@@ -100,7 +100,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     else:
         try:
             provider = tool.resolve(provider_name)
-        except AgentuseError:
+        except HBridgeError:
             # Not a provider name: it belongs to the tool.
             provider, passthrough = None, [provider_name, *passthrough]
     launch = tool.launch(provider, passthrough)
@@ -162,7 +162,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     for path in catalog.missing:
         print(f"  problem  included catalog not found: {path}")
         problems += 1
-    print(f"agentuse command in configs: {' '.join(tools.self_command(catalog))}")
+    print(f"hbridge command in configs: {' '.join(tools.self_command(catalog))}")
     print("credentials:")
     for name in catalog.credentials:
         key, tried = credentials.resolve(catalog, name)
@@ -186,7 +186,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                 if credential and not credentials.resolve(catalog, credential)[0]:
                     print(f"  problem  {name} uses {status.provider} but '{credential}' has no key")
                     problems += 1
-        except AgentuseError as error:
+        except HBridgeError as error:
             print(f"  problem  {name}: {error}")
             problems += 1
     return 1 if problems else 0
@@ -210,19 +210,19 @@ def cmd_install_shims(args: argparse.Namespace) -> int:
 
 def cmd_uninstall_shims(args: argparse.Namespace) -> int:
     removed = shims.uninstall(expand(args.dir))
-    print(f"removed {len(removed)} agentuse commands from {expand(args.dir)}")
+    print(f"removed {len(removed)} hbridge commands from {expand(args.dir)}")
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="agentuse",
+        prog="hbridge",
         description="Switch coding-agent harnesses between subscriptions and API providers.",
         epilog=USAGE_EXAMPLES,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--version", action="version", version=f"agentuse {__version__}")
-    parser.add_argument("--catalog", help="catalog file (default: $AGENTUSE_CATALOG or ~/.config/agentuse/catalog.toml)")
+    parser.add_argument("--version", action="version", version=f"hbridge {__version__}")
+    parser.add_argument("--catalog", help="catalog file (default: $HBRIDGE_CATALOG or ~/.config/hbridge/catalog.toml)")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("status", help="show each harness's provider")
@@ -263,8 +263,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("tools", nargs="*", help="limit to these harnesses")
     p.add_argument("--dir", default="~/.local/bin")
     p.add_argument("--wrap", action="store_true", help="also wrap the harness itself (claude, codex, ...) so plain launches get keys injected")
-    p.add_argument("--force", action="store_true", help="replace files agentuse did not write")
-    p.add_argument("--command", help="how shims invoke agentuse (default: this agentuse's path)")
+    p.add_argument("--force", action="store_true", help="replace files hbridge did not write")
+    p.add_argument("--command", help="how shims invoke hbridge (default: this hbridge's path)")
     p.set_defaults(func=cmd_install_shims)
 
     p = sub.add_parser("uninstall-shims", help="remove commands created by install-shims")
@@ -277,8 +277,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
-    except AgentuseError as error:
-        print(f"agentuse: {error}", file=sys.stderr)
+    except HBridgeError as error:
+        print(f"hbridge: {error}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:  # pragma: no cover
         return 130

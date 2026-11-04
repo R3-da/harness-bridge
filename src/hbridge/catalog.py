@@ -10,22 +10,22 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from agentuse import AgentuseError
-from agentuse.files import expand
+from hbridge import HBridgeError
+from hbridge.files import expand
 
 SUBSCRIPTION_ALIASES = {"sub", "subscription"}
 
 
 def default_catalog_text() -> str:
-    return resources.files("agentuse").joinpath("default_catalog.toml").read_text("utf-8")
+    return resources.files("hbridge").joinpath("default_catalog.toml").read_text("utf-8")
 
 
 def user_catalog_path() -> Path:
-    explicit = os.environ.get("AGENTUSE_CATALOG")
+    explicit = os.environ.get("HBRIDGE_CATALOG")
     if explicit:
         return expand(explicit)
     base = os.environ.get("XDG_CONFIG_HOME") or "~/.config"
-    return expand(base) / "agentuse" / "catalog.toml"
+    return expand(base) / "hbridge" / "catalog.toml"
 
 
 def deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
@@ -45,12 +45,12 @@ def _load_file(
     """Merge `path` into `data`: its includes first, then its own keys."""
     resolved = path.resolve()
     if resolved in seen:
-        raise AgentuseError(f"catalog include cycle at {path}")
+        raise HBridgeError(f"catalog include cycle at {path}")
     seen.add(resolved)
     try:
         overlay = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as error:
-        raise AgentuseError(f"invalid TOML in {path}: {error}") from error
+        raise HBridgeError(f"invalid TOML in {path}: {error}") from error
     includes = overlay.pop("include", [])
     if isinstance(includes, str):
         includes = [includes]
@@ -104,7 +104,7 @@ class Catalog:
         tools = self.tools
         if name not in tools:
             known = ", ".join(sorted(tools)) or "none"
-            raise AgentuseError(f"unknown tool '{name}' (known: {known})")
+            raise HBridgeError(f"unknown tool '{name}' (known: {known})")
         return tools[name]
 
     def tool_providers(self, tool: str) -> dict[str, dict[str, Any]]:
@@ -123,7 +123,7 @@ class Catalog:
             if name in (spec.get("aliases") or []) and provider in available:
                 return provider
         known = ", ".join(sorted(available)) or "none"
-        raise AgentuseError(f"{tool}: unknown provider '{name}' (expected one of: {known})")
+        raise HBridgeError(f"{tool}: unknown provider '{name}' (expected one of: {known})")
 
     def provider_names(self, tool: str) -> list[str]:
         """Every name that resolves for this tool, for shims and completion."""

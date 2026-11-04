@@ -4,8 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from agentuse import shims, tools
-from agentuse.cli import main
+from hbridge import shims, tools
+from hbridge.cli import main
 
 SRC = str(Path(__file__).resolve().parents[1] / "src")
 
@@ -50,8 +50,8 @@ def test_install_and_uninstall_shims(home, capsys):
     assert {"ccuse", "cxuse", "kuse", "piuse", "huse"} <= names
     assert {"claude-go", "claude-or", "claude-openrouter", "codex-openai", "kilo-go", "pi-or"} <= names
     assert {"claude", "codex"} <= names
-    assert 'exec agentuse run codex go -- "$@"' in (target / "codex-go").read_text()
-    assert 'exec agentuse use claude "$@"' in (target / "ccuse").read_text()
+    assert 'exec hbridge run codex go -- "$@"' in (target / "codex-go").read_text()
+    assert 'exec hbridge use claude "$@"' in (target / "ccuse").read_text()
 
     (target / "mine").write_text("keep")
     assert main(["uninstall-shims", "--dir", str(target)]) == 0
@@ -63,15 +63,15 @@ def test_install_refuses_to_clobber_foreign_files(home, capsys):
     target.mkdir()
     (target / "ccuse").write_text("someone else's script")
     assert main(["install-shims", "--dir", str(target)]) == 1
-    assert "not written by agentuse" in capsys.readouterr().err
+    assert "not written by hbridge" in capsys.readouterr().err
 
 
 def test_shims_end_to_end(home, tmp_path):
-    """Run a generated shim through a real shell and agentuse process."""
+    """Run a generated shim through a real shell and hbridge process."""
     target = tmp_path / "shim-bin"
-    (home / "catalog.toml").write_text(f'[settings]\nself = "{sys.executable} -m agentuse"\n')
+    (home / "catalog.toml").write_text(f'[settings]\nself = "{sys.executable} -m hbridge"\n')
     env = {**os.environ, "PYTHONPATH": SRC}
-    subprocess.run([sys.executable, "-m", "agentuse", "install-shims", "--dir", str(target)],
+    subprocess.run([sys.executable, "-m", "hbridge", "install-shims", "--dir", str(target)],
                    check=True, env=env, capture_output=True)
     result = subprocess.run([str(target / "cxuse"), "go"], env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
@@ -90,6 +90,6 @@ def test_doctor_reports_missing_keys(home, capsys):
 
 def test_install_shims_with_explicit_command(home):
     target = home / "shim-bin"
-    assert main(["install-shims", "--dir", str(target), "--command", "/opt/agentuse/bin/agentuse", "codex"]) == 0
+    assert main(["install-shims", "--dir", str(target), "--command", "/opt/hbridge/bin/hbridge", "codex"]) == 0
     assert {p.name for p in target.iterdir()} == {"cxuse", "codex-openai", "codex-go", "codex-openrouter", "codex-or"}
-    assert "exec /opt/agentuse/bin/agentuse run codex go" in (target / "codex-go").read_text()
+    assert "exec /opt/hbridge/bin/hbridge run codex go" in (target / "codex-go").read_text()

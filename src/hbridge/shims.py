@@ -7,9 +7,9 @@ import shlex
 from dataclasses import dataclass
 from pathlib import Path
 
-from agentuse import AgentuseError
-from agentuse.catalog import Catalog
-from agentuse.tools import ADAPTERS, SHIM_MARKER, is_shim, self_command
+from hbridge import HBridgeError
+from hbridge.catalog import Catalog
+from hbridge.tools import ADAPTERS, SHIM_MARKER, is_shim, self_command
 
 DEFAULT_SWITCH = {
     "claude": "ccuse",
@@ -23,7 +23,7 @@ DEFAULT_SWITCH = {
 @dataclass
 class Shim:
     name: str
-    args: list[str]  # arguments after the agentuse command
+    args: list[str]  # arguments after the hbridge command
     passthrough_sep: bool = False  # insert `--` before "$@"
 
     def render(self, command: list[str]) -> str:
@@ -66,8 +66,8 @@ def install(
     for shim in plan(catalog, tools, wrap=wrap):
         path = directory / shim.name
         if path.exists() and not is_shim(path) and not force:
-            raise AgentuseError(
-                f"{path} exists and was not written by agentuse (use --force to replace it)"
+            raise HBridgeError(
+                f"{path} exists and was not written by hbridge (use --force to replace it)"
             )
         path.write_text(shim.render(command), encoding="utf-8")
         path.chmod(0o755)

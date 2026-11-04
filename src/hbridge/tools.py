@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from agentuse import AgentuseError, credentials
-from agentuse.catalog import Catalog
-from agentuse.files import (
+from hbridge import HBridgeError, credentials
+from hbridge.catalog import Catalog
+from hbridge.files import (
     atomic_write,
     codex_lines,
     expand,
@@ -26,7 +26,7 @@ from agentuse.files import (
     write_json,
 )
 
-SHIM_MARKER = "# agentuse-shim"
+SHIM_MARKER = "# hbridge-shim"
 
 
 def _xdg(name: str, fallback: str) -> Path:
@@ -42,7 +42,7 @@ def is_shim(path: Path) -> bool:
 
 
 def which(binary: str, env: dict[str, str]) -> str | None:
-    """Find a binary on PATH, skipping agentuse's own wrapper shims."""
+    """Find a binary on PATH, skipping hbridge's own wrapper shims."""
     if os.sep in binary:
         path = expand(binary)
         return str(path) if os.access(path, os.X_OK) else None
@@ -54,14 +54,14 @@ def which(binary: str, env: dict[str, str]) -> str | None:
 
 
 def self_command(catalog: Catalog) -> list[str]:
-    """How config files should invoke agentuse (for `agentuse key ...`)."""
+    """How config files should invoke hbridge (for `hbridge key ...`)."""
     configured = catalog.settings.get("self")
     if configured:
         return shlex.split(configured) if isinstance(configured, str) else list(configured)
-    found = shutil.which("agentuse")
+    found = shutil.which("hbridge")
     if found and not is_shim(Path(found)):
         return [os.path.abspath(found)]
-    return [sys.executable, "-m", "agentuse"]
+    return [sys.executable, "-m", "hbridge"]
 
 
 @dataclass
@@ -102,7 +102,7 @@ class Tool:
         binary = self.spec.get("binary") or self.name
         found = which(binary, env)
         if not found:
-            raise AgentuseError(f"{self.name}: '{binary}' not found on PATH")
+            raise HBridgeError(f"{self.name}: '{binary}' not found on PATH")
         return found
 
     # -- operations ---------------------------------------------------------
@@ -231,7 +231,7 @@ class Claude(Tool):
         helper = settings.get("apiKeyHelper")
         if command:
             settings["apiKeyHelper"] = shlex.join(command)
-        elif isinstance(helper, str) and "agentuse" in helper:
+        elif isinstance(helper, str) and "hbridge" in helper:
             settings.pop("apiKeyHelper", None)
         write_json(path, settings)
         return f"claude: {provider} ({path})"
@@ -293,7 +293,7 @@ class Codex(Tool):
         spec = self.provider_spec(provider)
         model_provider = spec.get("model_provider")
         if not isinstance(model_provider, str) or not isinstance(spec.get("model"), str):
-            raise AgentuseError(f"codex: provider '{provider}' needs model and model_provider")
+            raise HBridgeError(f"codex: provider '{provider}' needs model and model_provider")
         table = spec.get("provider_table")
         if not table:
             return model_provider, None
@@ -360,7 +360,7 @@ class Kilo(Tool):
         spec = self.provider_spec(provider)
         model = spec.get("model")
         if not isinstance(model, str) or "/" not in model:
-            raise AgentuseError(f"kilo: provider '{provider}' needs model = \"<provider>/<model>\"")
+            raise HBridgeError(f"kilo: provider '{provider}' needs model = \"<provider>/<model>\"")
         return model, str(spec.get("small_model") or model)
 
     def set(self, provider: str) -> str:
@@ -438,7 +438,7 @@ class Pi(Tool):
         spec = self.provider_spec(provider)
         target, model = spec.get("provider"), spec.get("model")
         if not isinstance(target, str) or not isinstance(model, str):
-            raise AgentuseError(f"pi: provider '{provider}' needs provider and model")
+            raise HBridgeError(f"pi: provider '{provider}' needs provider and model")
         return target, model
 
     def set(self, provider: str) -> str:
@@ -483,7 +483,7 @@ class Hermes(Tool):
         spec = self.provider_spec(provider)
         target, model = spec.get("provider"), spec.get("model")
         if not isinstance(target, str) or not isinstance(model, str):
-            raise AgentuseError(f"hermes: provider '{provider}' needs provider and model")
+            raise HBridgeError(f"hermes: provider '{provider}' needs provider and model")
         return target, model
 
     def _hermes(self, *args: str) -> str:
@@ -491,7 +491,7 @@ class Hermes(Tool):
         result = subprocess.run([binary, *args], capture_output=True, text=True, check=False)
         if result.returncode != 0:
             message = (result.stderr or result.stdout).strip()
-            raise AgentuseError(f"hermes {' '.join(args)} failed: {message}")
+            raise HBridgeError(f"hermes {' '.join(args)} failed: {message}")
         return result.stdout.strip()
 
     def set(self, provider: str) -> str:
@@ -530,7 +530,7 @@ def get(catalog: Catalog, name: str) -> Tool:
     adapter = ADAPTERS.get(name)
     if adapter is None:
         known = ", ".join(sorted(ADAPTERS))
-        raise AgentuseError(f"unknown tool '{name}' (supported: {known})")
+        raise HBridgeError(f"unknown tool '{name}' (supported: {known})")
     return adapter(catalog)
 
 

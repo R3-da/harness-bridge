@@ -1,5 +1,5 @@
 {
-  description = "agentuse: switch coding-agent harnesses between subscriptions, OpenCode Go and OpenRouter";
+  description = "harness-bridge (hbridge): switch coding-agent harnesses between subscriptions, OpenCode Go and OpenRouter";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -16,21 +16,21 @@
     in
     {
       packages = forAll (pkgs: rec {
-        agentuse = pkgs.callPackage ./nix/package.nix { };
-        default = agentuse;
+        harness-bridge = pkgs.callPackage ./nix/package.nix { };
+        default = harness-bridge;
       });
 
       # The package build runs the test suite.
       checks = forAll (pkgs: {
-        agentuse = self.packages.${pkgs.stdenv.hostPlatform.system}.agentuse;
+        harness-bridge = self.packages.${pkgs.stdenv.hostPlatform.system}.harness-bridge;
       });
 
       overlays.default = final: _prev: {
-        agentuse = final.callPackage ./nix/package.nix { };
+        harness-bridge = final.callPackage ./nix/package.nix { };
       };
 
       homeManagerModules.default = import ./nix/hm-module.nix self;
 
-      formatter = forAll (pkgs: pkgs.nixfmt-rfc-style);
+      formatter = forAll (pkgs: pkgs.nixfmt);
     };
 }

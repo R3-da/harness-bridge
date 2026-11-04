@@ -1,11 +1,11 @@
-# agentuse
+# harness-bridge
 
-One catalog and one command to point your coding-agent harnesses at the
+One catalog and one command, `hbridge`, to point your coding-agent harnesses at the
 provider you want: their own subscription, an **OpenCode Go** subscription,
 or **OpenRouter**.
 
 ```console
-$ agentuse status
+$ hbridge status
 claude  anthropic    default models
 codex   go           deepseek-v4.1-flash
 kilo    go           opencode-go/deepseek-v4.1-flash
@@ -28,14 +28,14 @@ its provider configured differently: an `env` block in Claude Code's
 `settings.json`, `model_provider` plus a `[model_providers.*]` table in
 Codex's `config.toml`, a model plus a separate state file in Kilo, and so on.
 Each also has its own traps (see [Harness notes](#harness-notes)).
-agentuse handles all of that from one catalog.
+hbridge handles all of that from one catalog.
 
 ## Install
 
 ```sh
-uv tool install git+https://github.com/R3-da/agentuse   # or: pipx install git+...
-agentuse install-shims        # optional: ccuse, cxuse, claude-go, codex-or, ...
-agentuse doctor               # check binaries, configs and keys
+uv tool install git+https://github.com/R3-da/harness-bridge   # or: pipx install git+...
+hbridge install-shims        # optional: ccuse, cxuse, claude-go, codex-or, ...
+hbridge doctor               # check binaries, configs and keys
 ```
 
 Nix users: see [Nix and home-manager](#nix-and-home-manager).
@@ -44,8 +44,8 @@ Nix users: see [Nix and home-manager](#nix-and-home-manager).
 
 | | Command | Writes config? | Reaches |
 | --- | --- | --- | --- |
-| **Permanent** | `agentuse use <tool> <provider>` (or `ccuse go`, …) | yes | every surface that reads the tool's config: shells, IDE extensions, desktop apps |
-| **One-shot** | `agentuse run <tool> <provider> -- args` (or `codex-go`, …) | never | only the process it starts |
+| **Permanent** | `hbridge use <tool> <provider>` (or `ccuse go`, …) | yes | every surface that reads the tool's config: shells, IDE extensions, desktop apps |
+| **One-shot** | `hbridge run <tool> <provider> -- args` (or `codex-go`, …) | never | only the process it starts |
 
 A permanent switch is the only way to reach surfaces that bypass your shell.
 The ChatGPT desktop app, for example, runs its own bundled Codex that reads
@@ -54,17 +54,17 @@ The ChatGPT desktop app, for example, runs its own bundled Codex that reads
 ## Commands
 
 ```text
-agentuse status [tool...]          current provider and model of each harness
-agentuse use <tool> [provider]     permanent switch (no provider: show status)
-agentuse run <tool> [provider] [-- args]
+hbridge status [tool...]          current provider and model of each harness
+hbridge use <tool> [provider]     permanent switch (no provider: show status)
+hbridge run <tool> [provider] [-- args]
                                    launch; with a provider, only for this run
-agentuse providers [tool...]       what each harness can use
-agentuse key <credential>          print a key (used by config-file helpers)
-agentuse doctor                    check binaries, configs and credentials
-agentuse catalog [--path]          the merged catalog as JSON
-agentuse init                      write a starter ~/.config/agentuse/catalog.toml
-agentuse install-shims [--dir D] [--wrap] [tool...]
-agentuse uninstall-shims [--dir D]
+hbridge providers [tool...]       what each harness can use
+hbridge key <credential>          print a key (used by config-file helpers)
+hbridge doctor                    check binaries, configs and credentials
+hbridge catalog [--path]          the merged catalog as JSON
+hbridge init                      write a starter ~/.config/hbridge/catalog.toml
+hbridge install-shims [--dir D] [--wrap] [tool...]
+hbridge uninstall-shims [--dir D]
 ```
 
 Tools: `claude` (`cc`), `codex` (`cx`), `kilo` (`k`), `pi`, `hermes` (`h`).
@@ -73,25 +73,25 @@ Providers: `anthropic`, `openai`, `go` (`opencode-go`), `openrouter` (`or`).
 
 ### Shims
 
-`agentuse install-shims` writes short commands into `~/.local/bin`:
+`hbridge install-shims` writes short commands into `~/.local/bin`:
 
 | Shim | Runs |
 | --- | --- |
-| `ccuse`, `cxuse`, `kuse`, `piuse`, `huse` | `agentuse use <tool> "$@"` |
-| `<tool>-<provider>`, e.g. `claude-go`, `codex-or`, `kilo-openai` | `agentuse run <tool> <provider> -- "$@"` |
-| with `--wrap`: `claude`, `codex`, … | `agentuse run <tool> default -- "$@"` |
+| `ccuse`, `cxuse`, `kuse`, `piuse`, `huse` | `hbridge use <tool> "$@"` |
+| `<tool>-<provider>`, e.g. `claude-go`, `codex-or`, `kilo-openai` | `hbridge run <tool> <provider> -- "$@"` |
+| with `--wrap`: `claude`, `codex`, … | `hbridge run <tool> default -- "$@"` |
 
 The `--wrap` shims put the configured provider's key into plain launches.
 That matters for Claude Code on OpenCode Go when you don't rely on
-`apiKeyHelper`. When agentuse looks up the real binary, it skips its own
+`apiKeyHelper`. When hbridge looks up the real binary, it skips its own
 shims, so shadowing `claude` on `PATH` is safe. `uninstall-shims` only
-removes files that agentuse wrote.
+removes files that hbridge wrote.
 
 ## The catalog
 
-Built-in defaults ship with agentuse: providers, credentials, and a model
-per harness and provider. Your file at `~/.config/agentuse/catalog.toml` (or
-`$AGENTUSE_CATALOG`) is deep-merged on top, so it only needs what you change:
+Built-in defaults ship with hbridge: providers, credentials, and a model
+per harness and provider. Your file at `~/.config/hbridge/catalog.toml` (or
+`$HBRIDGE_CATALOG`) is deep-merged on top, so it only needs what you change:
 
 ```toml
 # A different model for Codex on OpenCode Go.
@@ -103,8 +103,8 @@ model = "glm-5.3"
 ANTHROPIC_DEFAULT_SONNET_MODEL = "kimi-k3"
 ```
 
-Run `agentuse catalog` to see the merged result, and
-[`default_catalog.toml`](src/agentuse/default_catalog.toml) for every key,
+Run `hbridge catalog` to see the merged result, and
+[`default_catalog.toml`](src/hbridge/default_catalog.toml) for every key,
 with comments.
 
 ### Credentials
@@ -124,10 +124,10 @@ sources = [
 
 Some surfaces can't receive environment variables, such as Codex in the
 desktop app or Claude Code in VS Code. For those, the permanent switch writes
-a command that calls `agentuse key <credential>` at request time: Codex's
+a command that calls `hbridge key <credential>` at request time: Codex's
 `[model_providers.<id>.auth]` and Claude Code's `apiKeyHelper`. By default
-it stores the absolute path of the agentuse that ran the switch. If you sync
-those config files across machines, set `[settings] self = "agentuse"` so
+it stores the absolute path of the hbridge that ran the switch. If you sync
+those config files across machines, set `[settings] self = "hbridge"` so
 they store the bare command name instead.
 
 ## Harness notes
@@ -138,7 +138,7 @@ What each permanent switch edits, and the traps it handles:
   `~/.claude`): sets the `env` block (base URL and model tiers) and
   `apiKeyHelper`, so the VS Code extension and other bundled binaries get the
   key too. Your other `env` keys and `model` are left alone. Switching back to
-  `anthropic` removes them, and only removes an `apiKeyHelper` that agentuse
+  `anthropic` removes them, and only removes an `apiKeyHelper` that hbridge
   wrote. Launches clear stray `ANTHROPIC_*` variables, which would otherwise
   override the configuration. Non-Claude models get
   `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1`.
@@ -150,7 +150,7 @@ What each permanent switch edits, and the traps it handles:
   key beats the ChatGPT login and would silently take you off the
   subscription. One-shots pass `-c`/`-m` before any subcommand; Codex
   requires that order. The desktop app sometimes writes a second top-level
-  `model` pair; agentuse removes it.
+  `model` pair; hbridge removes it.
 - **Kilo**. Edits `kilo.jsonc` (or `kilo.json`) under `$XDG_CONFIG_HOME/kilo`
   (`model`, `small_model`) and the active model in
   `$XDG_STATE_HOME/kilo/model.json`, which Kilo prefers over the config. A
@@ -173,40 +173,40 @@ file's permissions.
 
 ```nix
 {
-  inputs.agentuse.url = "github:R3-da/agentuse";
+  inputs.hbridge.url = "github:R3-da/harness-bridge";
 
   # in your home-manager configuration:
-  imports = [ inputs.agentuse.homeManagerModules.default ];
-  programs.agentuse = {
+  imports = [ inputs.hbridge.homeManagerModules.default ];
+  programs.hbridge = {
     enable = true;
     shims.wrap = true;               # claude/codex/... inject keys on launch
     harnesses = {                    # installed, and launched by store path
       claude = pkgs.claude-code;
       codex = pkgs.codex;
     };
-    # Machine-specific values, generated into ~/.config/agentuse/catalog.toml:
+    # Machine-specific values, generated into ~/.config/hbridge/catalog.toml:
     settings.credentials.opencode-go.sources = [
       { file = config.sops.secrets.opencode_go_api_key.path; }
     ];
     # Models you want to edit without a rebuild, in your dotfiles:
-    catalogFile = "${config.home.homeDirectory}/dotfiles/agentuse.toml";
+    catalogFile = "${config.home.homeDirectory}/dotfiles/hbridge.toml";
   };
 }
 ```
 
 With `shims.wrap`, the wrappers take over the profile's `claude`, `codex`,
-… entries, so list the harnesses in `harnesses`: agentuse then launches them
+… entries, so list the harnesses in `harnesses`: hbridge then launches them
 by store path, and the rest of each package stays on PATH.
 
-The module installs the package, writes `~/.config/agentuse/catalog.toml`
+The module installs the package, writes `~/.config/hbridge/catalog.toml`
 (with `catalogFile` as an `include`), and builds the shims from the built-in
 catalog plus `settings`. It sets `settings.self` to the profile's
-`bin/agentuse`, so commands written into config files survive upgrades and
+`bin/hbridge`, so commands written into config files survive upgrades and
 garbage collection. Providers that exist only in `catalogFile` get no
-one-shot shims; run `agentuse install-shims` for those.
+one-shot shims; run `hbridge install-shims` for those.
 
 A catalog can `include` other catalogs. They are merged before the
-including file's own keys: `include = ["~/dotfiles/agentuse.toml"]`.
+including file's own keys: `include = ["~/dotfiles/hbridge.toml"]`.
 `nix build` runs the test suite.
 
 ## Development

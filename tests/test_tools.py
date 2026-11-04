@@ -3,7 +3,7 @@ import tomllib
 
 import pytest
 
-from agentuse import AgentuseError, tools
+from hbridge import HBridgeError, tools
 
 
 # --- Claude Code -----------------------------------------------------------
@@ -19,7 +19,7 @@ def test_claude_switch_round_trip(home, catalog):
     assert settings["env"]["KEEP"] == "1"
     assert "ANTHROPIC_API_KEY" not in settings["env"]
     assert settings["env"]["ANTHROPIC_BASE_URL"] == "https://opencode.ai/inference/go/anthropic"
-    assert settings["apiKeyHelper"] == "agentuse key opencode-go"
+    assert settings["apiKeyHelper"] == "hbridge key opencode-go"
     assert claude.status().provider == "go"
 
     claude.set("anthropic")
@@ -55,7 +55,7 @@ def test_claude_default_launch_follows_settings(home, catalog, go_key):
 
 
 def test_one_shot_without_key_fails(home, catalog):
-    with pytest.raises(AgentuseError, match="no key found"):
+    with pytest.raises(HBridgeError, match="no key found"):
         tools.get(catalog, "claude").launch("openrouter", [])
 
 
@@ -96,7 +96,7 @@ def test_codex_switch_preserves_file_and_adds_missing_provider(home, catalog):
     assert config["tui"]["theme"] == "dark"
     go = config["model_providers"]["opencode_go"]
     assert go["base_url"] == "https://opencode.ai/zen/go/v1"
-    assert go["auth"] == {"command": "agentuse", "args": ["key", "opencode-go"]}
+    assert go["auth"] == {"command": "hbridge", "args": ["key", "opencode-go"]}
     assert codex.status().provider == "go"
 
     codex.set("openrouter")
@@ -258,7 +258,7 @@ def test_binary_lookup_skips_shims(home, catalog):
     shim_dir = home / "shims"
     shim_dir.mkdir()
     shim = shim_dir / "codex"
-    shim.write_text(f"#!/bin/sh\n{tools.SHIM_MARKER}\nexec agentuse run codex\n")
+    shim.write_text(f"#!/bin/sh\n{tools.SHIM_MARKER}\nexec hbridge run codex\n")
     shim.chmod(0o755)
     env = {"PATH": f"{shim_dir}:{home / 'bin'}"}
     assert tools.which("codex", env) == str(home / "bin/codex")

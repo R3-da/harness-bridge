@@ -7,9 +7,9 @@ import os
 import subprocess
 from typing import Any
 
-from agentuse import AgentuseError
-from agentuse.catalog import Catalog
-from agentuse.files import expand
+from hbridge import HBridgeError
+from hbridge.catalog import Catalog
+from hbridge.files import expand
 
 OPENCODE_AUTH = "~/.local/share/opencode/auth.json"
 
@@ -60,7 +60,7 @@ def _from_source(source: dict[str, Any], env: dict[str, str]) -> str | None:
             value = entry.get(source.get("field", "key"))
             return value if isinstance(value, str) and value else None
         return None
-    raise AgentuseError(f"unknown credential source {source!r}")
+    raise HBridgeError(f"unknown credential source {source!r}")
 
 
 def resolve(
@@ -70,7 +70,7 @@ def resolve(
     env = dict(os.environ) if env is None else env
     spec = catalog.credentials.get(name)
     if spec is None:
-        raise AgentuseError(f"unknown credential '{name}'")
+        raise HBridgeError(f"unknown credential '{name}'")
     tried: list[str] = []
     for source in spec.get("sources") or []:
         tried.append(describe(source))
@@ -84,5 +84,5 @@ def require(catalog: Catalog, name: str, env: dict[str, str] | None = None) -> s
     key, tried = resolve(catalog, name, env)
     if key is None:
         where = "; ".join(tried) or "no sources configured"
-        raise AgentuseError(f"no key found for credential '{name}' (tried: {where})")
+        raise HBridgeError(f"no key found for credential '{name}' (tried: {where})")
     return key

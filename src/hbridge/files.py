@@ -18,7 +18,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from agentuse import AgentuseError
+from hbridge import HBridgeError
 
 
 def expand(path: str | os.PathLike[str]) -> Path:
@@ -96,9 +96,9 @@ def read_json(path: Path, *, jsonc: bool = False) -> dict[str, Any]:
     try:
         value = json.loads(text)
     except json.JSONDecodeError as error:
-        raise AgentuseError(f"invalid JSON in {path}: {error}") from error
+        raise HBridgeError(f"invalid JSON in {path}: {error}") from error
     if not isinstance(value, dict):
-        raise AgentuseError(f"expected a JSON object in {path}")
+        raise HBridgeError(f"expected a JSON object in {path}")
     return value
 
 
@@ -191,7 +191,7 @@ def parse_toml(lines: list[str], path: Path) -> dict[str, Any]:
     try:
         return tomllib.loads("".join(lines))
     except tomllib.TOMLDecodeError as error:
-        raise AgentuseError(f"invalid TOML in {path}: {error}") from error
+        raise HBridgeError(f"invalid TOML in {path}: {error}") from error
 
 
 def set_top_level(lines: list[str], values: dict[str, str]) -> list[str]:
@@ -228,7 +228,7 @@ def toml_value(value: Any) -> str:
     if isinstance(value, dict):
         inner = ", ".join(f"{toml_key(k)} = {toml_value(v)}" for k, v in value.items())
         return "{ " + inner + " }" if inner else "{}"
-    raise AgentuseError(f"cannot write {type(value).__name__} to TOML")
+    raise HBridgeError(f"cannot write {type(value).__name__} to TOML")
 
 
 def toml_table(header: str, table: dict[str, Any]) -> str:

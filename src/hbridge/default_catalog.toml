@@ -1,14 +1,14 @@
-# agentuse built-in catalog.
+# hbridge built-in catalog.
 #
-# Your own catalog ($AGENTUSE_CATALOG, or ~/.config/agentuse/catalog.toml) is
+# Your own catalog ($HBRIDGE_CATALOG, or ~/.config/hbridge/catalog.toml) is
 # deep-merged on top of this file, so it only needs the keys you change.
-# `agentuse catalog` prints the merged result.
+# `hbridge catalog` prints the merged result.
 
 [settings]
-# How config files refer back to agentuse (Codex auth commands, Claude Code's
-# apiKeyHelper). Empty means "the absolute path of the running agentuse".
-# Set it to "agentuse" if your configs are shared between machines and
-# agentuse is on PATH everywhere.
+# How config files refer back to hbridge (Codex auth commands, Claude Code's
+# apiKeyHelper). Empty means "the absolute path of the running hbridge".
+# Set it to "hbridge" if your configs are shared between machines and
+# hbridge is on PATH everywhere.
 self = ""
 
 # ---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ shim_names = ["openrouter", "or"]
 # ---------------------------------------------------------------------------
 # Credentials: where keys come from. The first source that yields a value
 # wins. Keys are only ever injected into a process environment or printed by
-# `agentuse key <name>`; they are never written into a config file.
+# `hbridge key <name>`; they are never written into a config file.
 #
 # Source kinds:
 #   { env = "NAME" }                         an environment variable
@@ -64,7 +64,7 @@ sources = [
 ]
 
 # ---------------------------------------------------------------------------
-# Claude Code: `agentuse use claude <provider>` rewrites the `env` block of
+# Claude Code: `hbridge use claude <provider>` rewrites the `env` block of
 # settings.json (and apiKeyHelper, so the VS Code extension and other
 # surfaces that bypass the shell get the key too).
 # ---------------------------------------------------------------------------
@@ -94,7 +94,7 @@ CLAUDE_CODE_SUBAGENT_MODEL = "minimax/minimax-m3"
 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = "1"
 
 # ---------------------------------------------------------------------------
-# Codex: `agentuse use codex <provider>` sets the top-level model and
+# Codex: `hbridge use codex <provider>` sets the top-level model and
 # model_provider in config.toml (the ChatGPT desktop app reads that file
 # directly) and adds the [model_providers.*] table if it is missing.
 # ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ base_url = "https://openrouter.ai/api/v1"
 wire_api = "responses"
 
 # ---------------------------------------------------------------------------
-# Kilo: `agentuse use kilo <provider>` sets model/small_model in kilo.jsonc
+# Kilo: `hbridge use kilo <provider>` sets model/small_model in kilo.jsonc
 # and the active model in Kilo's state file (Kilo prefers the state file).
 # ---------------------------------------------------------------------------
 
@@ -153,7 +153,7 @@ small_model = "openrouter/deepseek/deepseek-v4.1-flash"
 key_env = ["OPENROUTER_API_KEY"]
 
 # ---------------------------------------------------------------------------
-# Pi: `agentuse use pi <provider>` sets defaultProvider, defaultModel and an
+# Pi: `hbridge use pi <provider>` sets defaultProvider, defaultModel and an
 # exact enabledModels scope in ~/.pi/agent/settings.json.
 # ---------------------------------------------------------------------------
 
@@ -181,7 +181,7 @@ key_env = ["OPENROUTER_API_KEY"]
 api_key_flag = true
 
 # ---------------------------------------------------------------------------
-# Hermes: `agentuse use hermes <provider>` runs `hermes config set` for
+# Hermes: `hbridge use hermes <provider>` runs `hermes config set` for
 # model.provider and model.default, so unrelated settings are preserved.
 # OpenCode Go needs Hermes 0.21.5 or newer (x-opencode-session header).
 # ---------------------------------------------------------------------------

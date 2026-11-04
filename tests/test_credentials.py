@@ -3,8 +3,8 @@ import sys
 
 import pytest
 
-from agentuse import AgentuseError, credentials
-from agentuse.catalog import Catalog
+from hbridge import HBridgeError, credentials
+from hbridge.catalog import Catalog
 
 
 def test_env_beats_opencode_auth(catalog, go_key, monkeypatch):
@@ -33,5 +33,5 @@ sources = [{{ file = "{home}/k" }}]
 
 
 def test_missing_key_lists_sources(catalog):
-    with pytest.raises(AgentuseError, match="tried: env OPENROUTER_API_KEY"):
+    with pytest.raises(HBridgeError, match="tried: env OPENROUTER_API_KEY"):
         credentials.require(catalog, "openrouter")

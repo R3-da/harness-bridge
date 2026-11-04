@@ -1,7 +1,7 @@
 import pytest
 
-from agentuse import AgentuseError
-from agentuse.catalog import Catalog, deep_merge
+from hbridge import HBridgeError
+from hbridge.catalog import Catalog, deep_merge
 
 
 def test_deep_merge_overrides_leaves_only():
@@ -23,13 +23,13 @@ def test_aliases_and_subscription(catalog):
     assert catalog.resolve_provider("codex", "subscription") == "openai"
     assert catalog.resolve_provider("kilo", "or") == "openrouter"
     assert catalog.resolve_provider("pi", "opencode-go") == "go"
-    with pytest.raises(AgentuseError, match="unknown provider"):
+    with pytest.raises(HBridgeError, match="unknown provider"):
         catalog.resolve_provider("codex", "anthropic")
 
 
 def test_invalid_user_catalog(home):
     (home / "catalog.toml").write_text("not = [valid")
-    with pytest.raises(AgentuseError, match="invalid TOML"):
+    with pytest.raises(HBridgeError, match="invalid TOML"):
         Catalog.load()
 
 
@@ -51,5 +51,5 @@ def test_includes_merge_before_own_keys(home):
 
 def test_include_cycle(home):
     (home / "catalog.toml").write_text('include = ["catalog.toml"]\n')
-    with pytest.raises(AgentuseError, match="cycle"):
+    with pytest.raises(HBridgeError, match="cycle"):
         Catalog.load()
